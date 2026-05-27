@@ -6,7 +6,7 @@ from google import genai
 
 client = genai.Client()
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     contents="How does AI work?"
 )
 print(response.text)
@@ -19,7 +19,7 @@ from google.genai import types
 
 client = genai.Client()
 chat_session = client.chats.create(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     history=[
         types.UserContent(parts=[types.Part.from_text(text="Hello")]),
         types.ModelContent(parts=[types.Part.from_text(text="Great to meet you. What would you like to know?")]),
@@ -40,7 +40,7 @@ from google.genai import types
 
 client = genai.Client()
 for chunk in client.models.generate_content_stream(
-    model="gemini-3-flash-preview", contents="Tell me a story in 300 words."
+    model="gemini-3.5-flash", contents="Tell me a story in 300 words."
 ):
     print(chunk.text, end='')
 ```
@@ -60,7 +60,7 @@ with open("local_image.jpg", "rb") as f:
     local_image = types.Part.from_bytes(data=f.read(), mime_type="image/jpeg")
 
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     contents=[
         "Generate a list of all the objects contained in both images.",
         gcs_image,
@@ -77,7 +77,7 @@ from google.genai import types
 
 client = genai.Client()
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     contents=[
         types.Part.from_uri(
             file_uri="https://www.youtube.com/watch?v=3KtWfp0UopM",
@@ -88,3 +88,12 @@ response = client.models.generate_content(
 )
 print(response.text)
 ```
+
+## Media Resolution Token Cost
+
+Use the `media_resolution` config parameter to control token usage for multimodal assets:
+- **`low`**: 280 tokens per image, 70 tokens per video frame, 280 + text per PDF page. (Recommended for high-volume or long inputs).
+- **`medium`**: 560 tokens per image, 70 tokens per video frame, 560 + text per PDF page. (Recommended for scanned PDF OCR / layout understanding).
+- **`high`**: 1120 tokens per image, 280 tokens per video frame, 1120 + text per PDF page. (Recommended for maximum quality image analysis).
+- **`ultra_high`**: 2240 tokens per image (only applicable to individual parts).
+

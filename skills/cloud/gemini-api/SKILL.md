@@ -218,13 +218,10 @@ Ensure your Gemini 3.x API calls follow these official developer best practices:
 
 ### Thinking Level (`thinking_level`)
 - **Use `thinking_level` enum** instead of the legacy numeric `thinking_budget` parameter. Using both in the same request returns a `400` error.
-- **Preference for Default**: By default, do not specify the thinking level (let the model use its default). Specifying a custom thinking level should be done only when matching specific task characteristics:
-  - **No reasoning required**: Use `MINIMAL` if the model supports it (e.g., `gemini-3.5-flash` or `gemini-3.1-flash-lite`).
-  - **Reasoning required**:
-    - For `gemini-3.1-pro-preview`: The default is `HIGH` (dynamic thinking). Do not specify a custom level unless necessary.
-    - For `gemini-3.5-flash`: Use the default (`MEDIUM`) or a lower thinking level. **Avoid setting `HIGH`**, as it can result in increased thought steps that potentially inflate token usage without proportional gains.
-    - For `gemini-3.1-flash-lite`: Since the default is `MINIMAL` (nearly no reasoning), configure a higher thinking level (e.g., `LOW` or `MEDIUM`) if reasoning is required for the workload.
-- **Thinking cannot be turned off**: Thinking is a core mechanism of Gemini 3.x models. For low latency needs, configure the `thinking_level` to `MINIMAL`.
+- **Preference for Default**: By default, let the model use its default settings. Specifying a custom level should be done only when matching specific task characteristics:
+  - **No reasoning required**: Use `MINIMAL` (e.g., for low-complexity intent routing).
+  - **Reasoning required**: Do not specify `HIGH` on `gemini-3.5-flash` to avoid excessive latency/cost. Enable `LOW` or `MEDIUM` on `gemini-3.1-flash-lite` if reasoning is needed.
+- **Thinking cannot be turned off**: For lowest latency, configure the `thinking_level` to `MINIMAL`. For enum definitions, see [references/advanced_features.md](references/advanced_features.md).
 
 ### Prompt Engineering & System Instructions
 - **Prompt conciseness**: Keep prompts concise and direct. Verbose prompt engineering or forced chain-of-thought instructions designed for older models can cause Gemini 3.x to over-analyze and degrade performance.
@@ -254,25 +251,14 @@ Ensure your Gemini 3.x API calls follow these official developer best practices:
 - **Tool call overuse**: If the model over-uses tool calls, lower the thinking level or define an action budget in system instructions (e.g., "You have a limited action budget of <n> tool calls. Use them efficiently.").
 
 ### Media Resolution & Multimodality
-- Use `media_resolution` (values: `low`, `medium`, `high`, `ultra_high`) to control the token count for images, PDF pages, or video frames:
-  - `low`: 280 tokens per image, 70 tokens per video frame, 280 + text per PDF page. Sufficient for most tasks. Recommended for high-volume or long inputs.
-  - `medium`: 560 tokens per image, 70 tokens per video frame, 560 + text per PDF page. Recommended for scanned PDF OCR / document layout understanding.
-  - `high`: 1120 tokens per image, 280 tokens per video frame, 1120 + text per PDF page. Recommended for maximum quality image analysis.
-  - `ultra_high`: 2240 tokens per image (only applicable to individual parts).
-- **PDF Default OCR**: Note that the default OCR processing for PDFs has changed. Highly dense or complex documents should explicitly configure `media_resolution` to `high`.
-- If context window boundaries are exceeded, reduce `media_resolution` to `low`.
+- **Use `media_resolution`**: Control token counts for images, PDFs, or video frames using `low`, `medium`, `high`, or `ultra_high`. See [references/text_and_multimodal.md](references/text_and_multimodal.md) for detailed token costs per resolution.
+- **PDF Default OCR**: Highly dense or complex documents should explicitly configure `media_resolution` to `high`.
+- **Context Limits**: If context window boundaries are exceeded, reduce `media_resolution` to `low`.
 
 ### Context Caching
-- **Implicit vs. Explicit Caching**:
-  - **Implicit Caching**: Automatic caching enabled by default for all projects. Provides a 90% discount on cached tokens compared to standard input tokens. Supported on Gemini 3.5 Flash, Gemini 3.1 Flash-Lite, Gemini 3.1 Pro preview.
-  - **Explicit Caching**: Manual caching created and controlled via the Gemini Enterprise API, offering a 90% input token discount on Gemini 2.5 or later models.
-- **Implicit Cache Hits Optimization**:
-  - Place large, common content at the absolute **beginning** of your prompt to maintain a similar prefix.
-  - Send subsequent requests with a similar prefix in a short timeframe.
-- **Best Use Cases**: Use caching for chatbots with extensive system instructions, repetitive analysis of lengthy video files, recurring queries against large document sets, or frequent code repository analysis.
-- **Token Limits**: Explicit caching has a minimum cache token count limit of **4,096 tokens** for Gemini 3 and Gemini 3.1 models (and **2,048 tokens** for Gemini 2.0/2.5 models).
-- **Cloud Storage Objects**: Do NOT modify Cloud Storage objects used in a context cache until the cache has expired or has been deleted. Modifying the underlying GCS object renders the cache unusable.
-- **Data Retention & Security**: To prevent any cache data retention, disable implicit caching and avoid creating explicit caches. Use VPC Service Controls and include the Cloud Storage bucket in the service perimeter to prevent exfiltration.
+- **Implicit vs. Explicit**: Implicit caching is automatic and enabled by default (90% discount). Explicit caching is manually managed. See [references/advanced_features.md](references/advanced_features.md) for detailed cache configuration and limits.
+- **Implicit Cache Hits Optimization**: Place large, common content at the absolute **beginning** of your prompt (prefix matching) and send requests in a short timeframe.
+- **Best Use Cases**: Chatbots with long system instructions, repetitive video analysis, recurring large document queries, or code repository analysis.
 
 ### Function Calling & Thought Signatures
 - **Strict matching**: Every `FunctionResponse` sent back to the model must include the `id` from the corresponding `FunctionCall`, the `name` must match exactly, and there must be exactly one response per call. Mismatches will cause empty responses.

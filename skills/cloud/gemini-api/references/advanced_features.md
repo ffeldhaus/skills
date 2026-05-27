@@ -10,7 +10,7 @@ from google.genai import types
 client = genai.Client()
 
 content_cache = client.caches.create(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     config=types.CreateCachedContentConfig(
         contents=[
             types.Content(
@@ -26,13 +26,21 @@ content_cache = client.caches.create(
 
 # Use the cache
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     contents="Summarize the pdf",
     config=types.GenerateContentConfig(
         cached_content=content_cache.name
     ),
 )
 ```
+
+### Caching Limits & Configuration
+- **Token Limits**: Explicit caching has a minimum cache token count limit of **4,096 tokens** for Gemini 3 and Gemini 3.1 models (and **2,048 tokens** for Gemini 2.0/2.5 models).
+- **Size Limits**: Maximum size of cached content via blob or text is **10 MB**.
+- **TTL**: Minimum expiration time is 1 minute; there is no maximum cache duration limit.
+- **Cloud Storage objects**: Do NOT modify objects stored in Cloud Storage used in a context cache until the cache has expired or has been deleted. Modifying the underlying GCS object renders the cache unusable.
+- **VPC Service Controls**: Include GCS buckets in the service perimeter to prevent exfiltration.
+- **Data Retention**: Disable implicit caching and avoid creating explicit caches if zero data retention is required.
 
 ## Batch Prediction
 For processing large datasets asynchronously.
@@ -45,7 +53,7 @@ from google.genai import types
 client = genai.Client()
 
 job = client.batches.create(
-    model="gemini-3-flash-preview",
+    model="gemini-3.5-flash",
     src="gs://your-bucket/prompts.jsonl",
     config=types.CreateBatchJobConfig(dest="gs://your-bucket/outputs"),
 )
@@ -58,13 +66,13 @@ while job.state not in completed_states:
 
 ### Thinking (Reasoning)
 
-Thinking is on by default for `gemini-3.1-pro-preview` and `gemini-3-flash-preview`.
+Thinking is on by default for `gemini-3.1-pro-preview` (default `HIGH` / dynamic) and `gemini-3.5-flash` (default `MEDIUM`). `gemini-3.1-flash-lite` defaults to `MINIMAL`.
 It can be adjusted by using the `thinking_level` parameter.
 
-- **`MINIMAL`:** (Gemini 3 Flash Only) Constrains the model to use as few tokens as possible for thinking and is best used for low-complexity tasks that wouldn't benefit from extensive reasoning.
+- **`MINIMAL`:** Constrains the model to use as few tokens as possible for thinking and is best used for low-complexity tasks that wouldn't benefit from extensive reasoning.
 - **`LOW`**: Constrains the model to use fewer tokens for thinking and is suitable for simpler tasks where extensive reasoning is not required.
 - **`MEDIUM`**: Offers a balanced approach suitable for tasks of moderate complexity that benefit from reasoning but don't require deep, multi-step planning.
-- **`HIGH`**: (Default) Maximizes reasoning depth. The model may take significantly longer to reach a first token, but the output will be more thoroughly vetted.
+- **`HIGH`**: Maximizes reasoning depth. The model may take significantly longer to reach a first token, but the output will be more thoroughly vetted.
 
 ```python
 from google import genai
@@ -123,7 +131,7 @@ async def run():
 
             # Send request to the model with MCP function declarations
             response = await client.aio.models.generate_content(
-                model="gemini-3-flash-preview",
+                model="gemini-3.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[session],  # uses the session, will automatically call the tool using automatic function calling
